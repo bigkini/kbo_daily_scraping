@@ -1,9 +1,9 @@
-name: KBO Raw JSON Test (2025-03-22)
+name: KBO raw json scrap
 
 on:
   schedule:
     - cron: '0 16 * * *' # 한국 시간 기준 매일 오전 1시 (전날 데이터 수집용)
-  workflow_dispatch:      # GitHub Actions 탭에서 [Run workflow] 버튼으로 즉시 실행 가능
+  workflow_dispatch:
 
 jobs:
   scraping:
