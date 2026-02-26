@@ -1,0 +1,36 @@
+name: KBO Raw JSON Test (2025-03-22)
+
+on:
+  schedule:
+    - cron: '0 16 * * *' # 한국 시간 기준 매일 오전 1시 (전날 데이터 수집용)
+  workflow_dispatch:      # GitHub Actions 탭에서 [Run workflow] 버튼으로 즉시 실행 가능
+
+jobs:
+  scraping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v3
+
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true # 패키지 설치 속도를 위해 필수
+
+      - name: Install Packages
+        run: |
+          Rscript -e 'install.packages(c("tidyverse", "jsonlite", "httr"))'
+
+      - name: Run KBO Scraper
+        run: Rscript kbo_json_scraper.R
+
+      - name: Commit and Push JSONs
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          
+          # kbo_raw_all 폴더 내의 모든 json 파일을 추가
+          git add kbo_raw_all/*.json
+          
+          # 변경사항이 있을 때만 커밋 (테스트 시 중복 커밋 방지)
+          git diff --cached --quiet || (git commit -m "Add KBO Test Data: 2025-03-22" && git push)
