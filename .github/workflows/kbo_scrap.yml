@@ -1,9 +1,10 @@
-name: KBO raw json scrap
+name: KBO daily scraping
 
 on:
   schedule:
-    - cron: '0 16 * * *' # 한국 시간 기준 매일 오전 1시 (전날 데이터 수집용)
-  workflow_dispatch:
+    # 한국 시간(KST) 오전 1시는 UTC 기준 전날 16시입니다.
+    - cron: '0 16 * * *' 
+  workflow_dispatch: # 수동 실행 버튼 활성화
 
 jobs:
   scraping:
@@ -15,22 +16,32 @@ jobs:
       - name: Setup R
         uses: r-lib/actions/setup-r@v2
         with:
-          use-public-rspm: true # 패키지 설치 속도를 위해 필수
+          use-public-rspm: true # 리눅스용 바이너리 패키지로 광속 설치
 
       - name: Install Packages
         run: |
           Rscript -e 'install.packages(c("tidyverse", "jsonlite", "httr"))'
 
       - name: Run KBO Scraper
+        # R 스크립트에서 데이터가 없으면 quit(status = 0)으로 종료하게 설계되었습니다.
         run: Rscript kbo_json_scraper.R
 
-      - name: Commit and Push JSONs
+      - name: Commit and Push
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           
-          # kbo_raw_all 폴더 내의 모든 json 파일을 추가
-          git add kbo_raw_all/*.json
-          
-          # 변경사항이 있을 때만 커밋 (테스트 시 중복 커밋 방지)
-          git diff --cached --quiet || (git commit -m "Add KBO Test Data: 2025-03-22" && git push)
+          # 1. 폴더 존재 여부와 그 안에 .json 파일이 있는지 확인
+          if [ -d "kbo_raw_all" ] && ls kbo_raw_all/*.json 1> /dev/null 2>&1; then
+            git add kbo_raw_all/*.json
+            
+            # 2. 스테이징된 변경사항(새로운 JSON)이 있는지 확인 후 커밋
+            if ! git diff --cached --quiet; then
+              git commit -m "Update KBO JSON: $(date +'%Y-%m-%d')"
+              git push
+            else
+              echo "새로 수집된 데이터가 없어 커밋을 생략합니다."
+            fi
+          else
+            echo "수집된 JSON 파일이 없습니다. (경기 없는 날 혹은 수집 실패)"
+          fi
