@@ -3,7 +3,7 @@ name: KBO daily scraping
 on:
   schedule:
     # 한국 시간(KST) 오전 1시는 UTC 기준 전날 16시입니다.
-    # - cron: '0 16 * * *' 
+    - cron: '0 16 * * *' 
   workflow_dispatch: # 수동 실행 버튼 활성화
 
 jobs:
